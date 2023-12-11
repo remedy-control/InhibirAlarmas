@@ -35,6 +35,26 @@ func CambiarStatusSitio(psID string, psStatus string, psMensaje string, psQualif
 	return config.ActualizacionRC()
 }
 
+// Actualización 30/11/2023
+// func StatusCRQ(psID string, cambio string, fechaI string, fechaF string) bool {
+// 	config := models.ConfigRC{
+// 		Server:     "http://localhost:8080/Remedy/servicios/RMDUpdate?",
+// 		Sistema:    "CRQVENTANAS",
+// 		Formulario: "Site-EP",
+// 		Columnas:   "%27536878365%27=%27" + cambio + "%27%20%27536878366%27=%27" + fechaI + "%27%20%27536878367%27=%27" + fechaF + "%27",
+// 		ID:         psID,
+// 	}
+// 	logFile, err := os.OpenFile("/home/remedy/VentanasCR/StatusCRQ.log", os.O_APPEND|os.O_RDWR|os.O_CREATE, 0755)
+// 	if err != nil {
+// 		log.Panic(err)
+// 	}
+// 	defer logFile.Close()
+// 	log.SetOutput(logFile)
+// 	log.SetFlags(log.Lshortfile | log.LstdFlags)
+// 	log.Println("Cambiar estatus", config.Server, config.Sistema, config.Formulario, config.Columnas, config.ID)
+// 	return config.ActualizacionRC()
+// }
+
 func BuscarSitio(psNemonico string) (string, string, string) {
 	config := models.ConfigRC{
 		Server:      "http://localhost:8080/Remedy/servicios/RMDSelect?",
@@ -151,6 +171,7 @@ func ProcesarArchivos(poArchivos []os.FileInfo, psPathlocal string, psPathDestin
 		defer logFile.Close()
 		log.SetOutput(logFile)
 		log.SetFlags(log.Lshortfile | log.LstdFlags)
+
 		voRegistros := Utilerias.LeerArchivo(psPathlocal + voArchivo.Name())
 		voRegistrosValidos := []Utilerias.Ventanas{}
 		var vfFecha time.Time
@@ -170,12 +191,10 @@ func ProcesarArchivos(poArchivos []os.FileInfo, psPathlocal string, psPathDestin
 				vfFecha = ParseFecha(voRegistro.FechaI)
 				vfFechaF = ParseFecha(voRegistro.FechaF).String()
 				vfFechaIni = ParseFecha(voRegistro.FechaI).String()
-				log.Println("Procesar Archivos: ", vfFechaF, vfFechaIni, reflect.TypeOf(vfFechaF), voRegistro, voRegistro)
+				log.Println("Procesar Archivos: ", vfFechaF, vfFechaIni, reflect.TypeOf(vfFechaF), voRegistro)
 
-				//vfFechaF = ParseFecha(voRegistro.FechaF)
 				vsMensaje = "%20%27536878362%27=%27Actualizado%20a%20OPERANDO%20SIN%20RADIAR%20por%20inicio%20del%20cambio%20" + voRegistro.Cambio + "%27"
 				vsQualifi = "%20%27536870915%27=%27POR%20REGLA%20AUTOMATICA%20PARA%20INHIBIR%20INCIDENTES%27"
-				//vsQualifi = "%20%27536870915%27=%27POR%20REGLA%20AUTOMATICA%20PARA%20INHIBIR%20INCIDENTES%27%20%27536878365%27=%27" + voRegistro.Cambio + "%27%20%27536878366%27=%27" + vfFecha.String() + "%27%20%27536878367%27=%27" + vfFechaF.String() + "%27"
 
 				vfFechaActual := time.Now()
 				diff := vfFechaActual.Sub(vfFecha)
@@ -187,6 +206,7 @@ func ProcesarArchivos(poArchivos []os.FileInfo, psPathlocal string, psPathDestin
 						log.Println("Realizando cambio del sitio: " + voRegistro.Sitio + " del cambio: " + vsCambio)
 						validateAux = CambiarStatusSitio(idSitio, psStatus, vsMensaje, vsQualifi)
 						log.Println("Procesar Archivos2: ", validateAux)
+						//StatusCRQ(idSitio, vsCambio, vfFechaIni, vfFechaF)
 
 						if !validateAux {
 							log.Println("El sitio " + voRegistro.Sitio + " no se actualizó correctamente")
@@ -205,7 +225,9 @@ func ProcesarArchivos(poArchivos []os.FileInfo, psPathlocal string, psPathDestin
 				vsCiclo = voRegistro.Ciclo
 				vsMensaje = "%20%27536878362%27=%27Actualizado%20a%20OPERANDO%20por%20fin%20del%20cambio%20" + voRegistro.Cambio + "%27"
 				vsQualifi = "%20%27536870915%27=%27-%27"
-				//vsQualifi = "%20%27536870915%27=%27-%27%20%27536878365%27=%27%20%27%20%27536878366%27=%27%20%27"
+				vfFechaIni = "-"
+				vfFechaF = "-"
+				vsCambio = "-"
 				vfFechaActual := time.Now()
 				diff := vfFechaActual.Sub(vfFecha)
 				if diff >= 0 {
@@ -216,6 +238,7 @@ func ProcesarArchivos(poArchivos []os.FileInfo, psPathlocal string, psPathDestin
 					if vsStatus == "3" && vsStatusReason == "POR REGLA AUTOMATICA PARA INHIBIR INCIDENTES" {
 						log.Println("Realizando cambio del sitio: " + voRegistro.Sitio + " del cambio: " + vsCambio)
 						validateAux = CambiarStatusSitio(idSitio, psStatus, vsMensaje, vsQualifi)
+						//StatusCRQ(idSitio, vsCambio, vfFechaIni, vfFechaF)
 						if !validateAux {
 							ciclo, _ := strconv.Atoi(vsCiclo)
 							ciclo++
@@ -290,6 +313,7 @@ func ProcesarArchivos(poArchivos []os.FileInfo, psPathlocal string, psPathDestin
 			log.Println("ERROR: Ningun Sitio del cambio " + vsCambio + " sigue cumpliendo con las reglas del sistema")
 			Utilerias.CrearArchivo(psPathEliminar+voArchivo.Name(), voRegistros)
 		}
+		logFile.Close()
 	}
 }
 
